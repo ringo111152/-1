@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>運転士用スタフ（行路表）エディタ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      user-select: none;
+    }
+
+    /* 印刷時はツールバー等を隠す */
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background-color: white !important;
+        padding: 0 !important;
+      }
+      #app-container {
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+      }
+    }
+
+    /* フルスクリーン表示時のスタイル */
+    :fullscreen #app-container,
+    :-webkit-full-screen #app-container {
+      width: 100vw !important;
+      max-width: 100vw !important;
+      height: 100vh !important;
+      border-radius: 0 !important;
+      border: none !important;
+      display: flex;
+      flex-direction: column;
+    }
+    :fullscreen #staff-sheet,
+    :-webkit-full-screen #staff-sheet {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* 編集可能エリアのホバー・フォーカス演出 */
+    [contenteditable="true"] {
+      outline: none;
+      transition: background-color 0.15s ease, box-shadow 0.15s ease;
+      cursor: text;
+    }
+    .edit-mode [contenteditable="true"]:hover {
+      background-color: rgba(59, 130, 246, 0.12);
+    }
+    [contenteditable="true"]:focus {
+      background-color: rgba(59, 130, 246, 0.2) !important;
+      box-shadow: inset 0 0 0 2px #3b82f6;
+    }
+
+    /* ダークモード（反転表示）用のスタイル */
+    .dark-theme {
+      background-color: #111827;
+      color: #f9fafb;
+    }
+    .dark-theme #staff-sheet {
+      background-color: #000000;
+      color: #ffffff;
+      border-color: #6b7280;
+    }
+    .dark-theme .border-line {
+      border-color: #6b7280 !important;
+    }
+    .dark-theme .bg-header-bar {
+      background-color: #1f2937 !important;
+      color: #f3f4f6 !important;
+    }
+    .dark-theme .bg-sub-gray {
+      background-color: #374151 !important;
+      color: #f9fafb !important;
+    }
+    .dark-theme .bg-article-header {
+      background-color: #4b5563 !important;
+      color: #ffffff !important;
+    }
+    .dark-theme .train-type-box {
+      background-color: #ffffff !important;
+      color: #000000 !important;
+    }
+    .dark-theme clock-face {
+      filter: invert(1);
+    }
+  </style>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.pointer-events-none{pointer-events:none}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.bottom-5{bottom:1.25rem}.right-0{right:0px}.right-1{right:0.25rem}.right-5{right:1.25rem}.top-1{top:0.25rem}.z-40{z-index:40}.z-50{z-index:50}.col-span-1{grid-column:span 1 / span 1}.col-span-10{grid-column:span 10 / span 10}.col-span-2{grid-column:span 2 / span 2}.col-span-3{grid-column:span 3 / span 3}.col-span-4{grid-column:span 4 / span 4}.col-span-5{grid-column:span 5 / span 5}.col-span-7{grid-column:span 7 / span 7}.col-span-8{grid-column:span 8 / span 8}.my-auto{margin-top:auto;margin-bottom:auto}.-ml-1{margin-left:-0.25rem}.mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.ml-0\.5{margin-left:0.125rem}.ml-2{margin-left:0.5rem}.mt-2{margin-top:0.5rem}.mt-3{margin-top:0.75rem}.-mt-2{margin-top:-0.5rem}.flex{display:flex}.grid{display:grid}.hidden{display:none}.h-28{height:7rem}.h-3\.5{height:0.875rem}.h-4{height:1rem}.h-6{height:1.5rem}.h-full{height:100%}.min-h-\[100px\]{min-height:100px}.min-h-\[120px\]{min-height:120px}.min-h-screen{min-height:100vh}.min-h-\[2\.15rem\]{min-height:2.15rem}.w-28{width:7rem}.w-3\.5{width:0.875rem}.w-4{width:1rem}.w-56{width:14rem}.w-6{width:1.5rem}.w-full{width:100%}.min-w-\[1\.25rem\]{min-width:1.25rem}.min-w-\[2\.6rem\]{min-width:2.6rem}.max-w-2xl{max-width:42rem}.flex-1{flex:1 1 0%}.cursor-pointer{cursor:pointer}.grid-cols-12{grid-template-columns:repeat(12, minmax(0, 1fr))}.grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-center{align-items:center}.items-baseline{align-items:baseline}.items-stretch{align-items:stretch}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:0.25rem}.gap-1\.5{gap:0.375rem}.gap-2{gap:0.5rem}.gap-0\.5{gap:0.125rem}.divide-y > :not([hidden]) ~ :not([hidden]){--tw-divide-y-reverse:0;border-top-width:calc(1px * calc(1 - var(--tw-divide-y-reverse)));border-bottom-width:calc(1px * var(--tw-divide-y-reverse))}.divide-black > :not([hidden]) ~ :not([hidden]){--tw-divide-opacity:1;border-color:rgb(0 0 0 / var(--tw-divide-opacity, 1))}.overflow-hidden{overflow:hidden}.whitespace-nowrap{white-space:nowrap}.whitespace-pre-wrap{white-space:pre-wrap}.rounded{border-radius:0.25rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-md{border-radius:0.375rem}.rounded-xl{border-radius:0.75rem}.rounded-\[2px\]{border-radius:2px}.border{border-width:1px}.border-b{border-bottom-width:1px}.border-b-2{border-bottom-width:2px}.border-r{border-right-width:1px}.border-r-2{border-right-width:2px}.border-black{--tw-border-opacity:1;border-color:rgb(0 0 0 / var(--tw-border-opacity, 1))}.border-blue-200{--tw-border-opacity:1;border-color:rgb(191 219 254 / var(--tw-border-opacity, 1))}.border-gray-200{--tw-border-opacity:1;border-color:rgb(229 231 235 / var(--tw-border-opacity, 1))}.border-gray-300{--tw-border-opacity:1;border-color:rgb(209 213 219 / var(--tw-border-opacity, 1))}.border-gray-400{--tw-border-opacity:1;border-color:rgb(156 163 175 / var(--tw-border-opacity, 1))}.border-red-200{--tw-border-opacity:1;border-color:rgb(254 202 202 / var(--tw-border-opacity, 1))}.bg-black{--tw-bg-opacity:1;background-color:rgb(0 0 0 / var(--tw-bg-opacity, 1))}.bg-blue-50{--tw-bg-opacity:1;background-color:rgb(239 246 255 / var(--tw-bg-opacity, 1))}.bg-blue-700{--tw-bg-opacity:1;background-color:rgb(29 78 216 / var(--tw-bg-opacity, 1))}.bg-emerald-600{--tw-bg-opacity:1;background-color:rgb(5 150 105 / var(--tw-bg-opacity, 1))}.bg-emerald-700{--tw-bg-opacity:1;background-color:rgb(4 120 87 / var(--tw-bg-opacity, 1))}.bg-gray-100{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity, 1))}.bg-gray-200{--tw-bg-opacity:1;background-color:rgb(229 231 235 / var(--tw-bg-opacity, 1))}.bg-gray-300{--tw-bg-opacity:1;background-color:rgb(209 213 219 / var(--tw-bg-opacity, 1))}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))}.bg-gray-500{--tw-bg-opacity:1;background-color:rgb(107 114 128 / var(--tw-bg-opacity, 1))}.bg-gray-900{--tw-bg-opacity:1;background-color:rgb(17 24 39 / var(--tw-bg-opacity, 1))}.bg-indigo-600{--tw-bg-opacity:1;background-color:rgb(79 70 229 / var(--tw-bg-opacity, 1))}.bg-red-50{--tw-bg-opacity:1;background-color:rgb(254 242 242 / var(--tw-bg-opacity, 1))}.bg-red-600{--tw-bg-opacity:1;background-color:rgb(220 38 38 / var(--tw-bg-opacity, 1))}.bg-transparent{background-color:transparent}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-white\/90{background-color:rgb(255 255 255 / 0.9)}.bg-pink-500{--tw-bg-opacity:1;background-color:rgb(236 72 153 / var(--tw-bg-opacity, 1))}.p-1{padding:0.25rem}.p-1\.5{padding:0.375rem}.p-3{padding:0.75rem}.px-1{padding-left:0.25rem;padding-right:0.25rem}.px-1\.5{padding-left:0.375rem;padding-right:0.375rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-2\.5{padding-left:0.625rem;padding-right:0.625rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-0\.5{padding-top:0.125rem;padding-bottom:0.125rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.px-0{padding-left:0px;padding-right:0px}.px-0\.5{padding-left:0.125rem;padding-right:0.125rem}.pb-1{padding-bottom:0.25rem}.pt-2{padding-top:0.5rem}.text-center{text-align:center}.text-right{text-align:right}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.text-\[0\.68rem\]{font-size:0.68rem}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-normal{font-weight:400}.leading-relaxed{line-height:1.625}.leading-snug{line-height:1.375}.leading-none{line-height:1}.tracking-\[0\.2em\]{letter-spacing:0.2em}.tracking-tight{letter-spacing:-0.025em}.tracking-wider{letter-spacing:0.05em}.tracking-widest{letter-spacing:0.1em}.text-black{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity, 1))}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246 / var(--tw-text-opacity, 1))}.text-blue-600{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.text-blue-700{--tw-text-opacity:1;color:rgb(29 78 216 / var(--tw-text-opacity, 1))}.text-gray-600{--tw-text-opacity:1;color:rgb(75 85 99 / var(--tw-text-opacity, 1))}.text-gray-700{--tw-text-opacity:1;color:rgb(55 65 81 / var(--tw-text-opacity, 1))}.text-gray-800{--tw-text-opacity:1;color:rgb(31 41 55 / var(--tw-text-opacity, 1))}.text-red-600{--tw-text-opacity:1;color:rgb(220 38 38 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.opacity-0{opacity:0}.shadow{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgb(0 0 0 / 0.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-xl{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-opacity{transition-property:opacity;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-150{transition-duration:150ms}.duration-200{transition-duration:200ms}.duration-300{transition-duration:300ms}.hover\:bg-blue-100:hover{--tw-bg-opacity:1;background-color:rgb(219 234 254 / var(--tw-bg-opacity, 1))}.hover\:bg-emerald-700:hover{--tw-bg-opacity:1;background-color:rgb(4 120 87 / var(--tw-bg-opacity, 1))}.hover\:bg-gray-100:hover{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity, 1))}.hover\:bg-gray-200:hover{--tw-bg-opacity:1;background-color:rgb(229 231 235 / var(--tw-bg-opacity, 1))}.hover\:bg-indigo-700:hover{--tw-bg-opacity:1;background-color:rgb(67 56 202 / var(--tw-bg-opacity, 1))}.hover\:bg-red-100:hover{--tw-bg-opacity:1;background-color:rgb(254 226 226 / var(--tw-bg-opacity, 1))}.hover\:text-blue-600:hover{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.active\:bg-gray-200:active{--tw-bg-opacity:1;background-color:rgb(229 231 235 / var(--tw-bg-opacity, 1))}.active\:opacity-60:active{opacity:0.6}.group:hover .group-hover\:opacity-100{opacity:1}@media (min-width: 640px){.sm\:h-32{height:8rem}.sm\:w-32{width:8rem}.sm\:px-4{padding-left:1rem;padding-right:1rem}.sm\:text-2xl{font-size:1.5rem;line-height:2rem}.sm\:text-4xl{font-size:2.25rem;line-height:2.5rem}.sm\:text-5xl{font-size:3rem;line-height:1}.sm\:text-base{font-size:1rem;line-height:1.5rem}.sm\:text-lg{font-size:1.125rem;line-height:1.75rem}.sm\:text-sm{font-size:0.875rem;line-height:1.25rem}.sm\:text-xl{font-size:1.25rem;line-height:1.75rem}.sm\:text-xs{font-size:0.75rem;line-height:1rem}}</style><style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.pointer-events-none{pointer-events:none}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.bottom-5{bottom:1.25rem}.left-0{left:0px}.right-0{right:0px}.right-1{right:0.25rem}.right-5{right:1.25rem}.top-1{top:0.25rem}.z-40{z-index:40}.z-50{z-index:50}.col-span-1{grid-column:span 1 / span 1}.col-span-10{grid-column:span 10 / span 10}.col-span-2{grid-column:span 2 / span 2}.col-span-3{grid-column:span 3 / span 3}.col-span-4{grid-column:span 4 / span 4}.col-span-5{grid-column:span 5 / span 5}.col-span-7{grid-column:span 7 / span 7}.col-span-8{grid-column:span 8 / span 8}.my-1{margin-top:0.25rem;margin-bottom:0.25rem}.my-auto{margin-top:auto;margin-bottom:auto}.-ml-1{margin-left:-0.25rem}.mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.ml-0\.5{margin-left:0.125rem}.ml-2{margin-left:0.5rem}.mt-2{margin-top:0.5rem}.-mt-2{margin-top:-0.5rem}.flex{display:flex}.grid{display:grid}.hidden{display:none}.h-28{height:7rem}.h-4{height:1rem}.h-6{height:1.5rem}.h-full{height:100%}.min-h-\[1\.75rem\]{min-height:1.75rem}.min-h-\[100px\]{min-height:100px}.min-h-\[120px\]{min-height:120px}.min-h-\[2\.25rem\]{min-height:2.25rem}.min-h-\[2\.5rem\]{min-height:2.5rem}.min-h-\[2\.8rem\]{min-height:2.8rem}.min-h-\[2rem\]{min-height:2rem}.min-h-\[3\.5rem\]{min-height:3.5rem}.min-h-screen{min-height:100vh}.min-h-\[2\.15rem\]{min-height:2.15rem}.w-28{width:7rem}.w-4{width:1rem}.w-56{width:14rem}.w-6{width:1.5rem}.w-60{width:15rem}.w-full{width:100%}.min-w-\[1\.8rem\]{min-width:1.8rem}.min-w-\[4rem\]{min-width:4rem}.min-w-\[5rem\]{min-width:5rem}.min-w-\[1\.25rem\]{min-width:1.25rem}.min-w-\[2\.6rem\]{min-width:2.6rem}.max-w-2xl{max-width:42rem}.flex-1{flex:1 1 0%}.cursor-pointer{cursor:pointer}.grid-cols-12{grid-template-columns:repeat(12, minmax(0, 1fr))}.grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-center{align-items:center}.items-baseline{align-items:baseline}.items-stretch{align-items:stretch}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:0.25rem}.gap-2{gap:0.5rem}.gap-2\.5{gap:0.625rem}.gap-0\.5{gap:0.125rem}.divide-y > :not([hidden]) ~ :not([hidden]){--tw-divide-y-reverse:0;border-top-width:calc(1px * calc(1 - var(--tw-divide-y-reverse)));border-bottom-width:calc(1px * var(--tw-divide-y-reverse))}.divide-black > :not([hidden]) ~ :not([hidden]){--tw-divide-opacity:1;border-color:rgb(0 0 0 / var(--tw-divide-opacity, 1))}.overflow-hidden{overflow:hidden}.whitespace-nowrap{white-space:nowrap}.whitespace-pre-wrap{white-space:pre-wrap}.rounded{border-radius:0.25rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-xl{border-radius:0.75rem}.rounded-\[2px\]{border-radius:2px}.border{border-width:1px}.border-b{border-bottom-width:1px}.border-b-2{border-bottom-width:2px}.border-r{border-right-width:1px}.border-r-2{border-right-width:2px}.border-t{border-top-width:1px}.border-black{--tw-border-opacity:1;border-color:rgb(0 0 0 / var(--tw-border-opacity, 1))}.border-gray-200{--tw-border-opacity:1;border-color:rgb(229 231 235 / var(--tw-border-opacity, 1))}.border-gray-300{--tw-border-opacity:1;border-color:rgb(209 213 219 / var(--tw-border-opacity, 1))}.border-gray-400{--tw-border-opacity:1;border-color:rgb(156 163 175 / var(--tw-border-opacity, 1))}.bg-black{--tw-bg-opacity:1;background-color:rgb(0 0 0 / var(--tw-bg-opacity, 1))}.bg-blue-50{--tw-bg-opacity:1;background-color:rgb(239 246 255 / var(--tw-bg-opacity, 1))}.bg-blue-700{--tw-bg-opacity:1;background-color:rgb(29 78 216 / var(--tw-bg-opacity, 1))}.bg-emerald-700{--tw-bg-opacity:1;background-color:rgb(4 120 87 / var(--tw-bg-opacity, 1))}.bg-gray-100{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity, 1))}.bg-gray-200{--tw-bg-opacity:1;background-color:rgb(229 231 235 / var(--tw-bg-opacity, 1))}.bg-gray-300{--tw-bg-opacity:1;background-color:rgb(209 213 219 / var(--tw-bg-opacity, 1))}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))}.bg-gray-500{--tw-bg-opacity:1;background-color:rgb(107 114 128 / var(--tw-bg-opacity, 1))}.bg-gray-900{--tw-bg-opacity:1;background-color:rgb(17 24 39 / var(--tw-bg-opacity, 1))}.bg-red-600{--tw-bg-opacity:1;background-color:rgb(220 38 38 / var(--tw-bg-opacity, 1))}.bg-transparent{background-color:transparent}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-white\/90{background-color:rgb(255 255 255 / 0.9)}.bg-emerald-50{--tw-bg-opacity:1;background-color:rgb(236 253 245 / var(--tw-bg-opacity, 1))}.p-1{padding:0.25rem}.p-1\.5{padding:0.375rem}.p-2{padding:0.5rem}.p-3{padding:0.75rem}.px-1{padding-left:0.25rem;padding-right:0.25rem}.px-1\.5{padding-left:0.375rem;padding-right:0.375rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-2\.5{padding-left:0.625rem;padding-right:0.625rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-0\.5{padding-top:0.125rem;padding-bottom:0.125rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.px-0{padding-left:0px;padding-right:0px}.px-0\.5{padding-left:0.125rem;padding-right:0.125rem}.pt-2{padding-top:0.5rem}.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-\[0\.7rem\]{font-size:0.7rem}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.text-\[0\.68rem\]{font-size:0.68rem}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-normal{font-weight:400}.leading-snug{line-height:1.375}.leading-none{line-height:1}.tracking-\[0\.2em\]{letter-spacing:0.2em}.tracking-tight{letter-spacing:-0.025em}.tracking-wider{letter-spacing:0.05em}.tracking-widest{letter-spacing:0.1em}.text-black{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity, 1))}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246 / var(--tw-text-opacity, 1))}.text-blue-700{--tw-text-opacity:1;color:rgb(29 78 216 / var(--tw-text-opacity, 1))}.text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175 / var(--tw-text-opacity, 1))}.text-gray-800{--tw-text-opacity:1;color:rgb(31 41 55 / var(--tw-text-opacity, 1))}.text-red-600{--tw-text-opacity:1;color:rgb(220 38 38 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-emerald-700{--tw-text-opacity:1;color:rgb(4 120 87 / var(--tw-text-opacity, 1))}.opacity-0{opacity:0}.shadow{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgb(0 0 0 / 0.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-xl{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-opacity{transition-property:opacity;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-150{transition-duration:150ms}.duration-200{transition-duration:200ms}.duration-300{transition-duration:300ms}.hover\:bg-gray-100:hover{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity, 1))}.hover\:bg-gray-200:hover{--tw-bg-opacity:1;background-color:rgb(229 231 235 / var(--tw-bg-opacity, 1))}.hover\:bg-red-50:hover{--tw-bg-opacity:1;background-color:rgb(254 242 242 / var(--tw-bg-opacity, 1))}.hover\:text-blue-600:hover{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.active\:bg-gray-200:active{--tw-bg-opacity:1;background-color:rgb(229 231 235 / var(--tw-bg-opacity, 1))}.active\:opacity-60:active{opacity:0.6}.group:hover .group-hover\:opacity-100{opacity:1}@media (min-width: 640px){.sm\:h-32{height:8rem}.sm\:w-32{width:8rem}.sm\:px-4{padding-left:1rem;padding-right:1rem}.sm\:text-2xl{font-size:1.5rem;line-height:2rem}.sm\:text-4xl{font-size:2.25rem;line-height:2.5rem}.sm\:text-5xl{font-size:3rem;line-height:1}.sm\:text-base{font-size:1rem;line-height:1.5rem}.sm\:text-lg{font-size:1.125rem;line-height:1.75rem}.sm\:text-sm{font-size:0.875rem;line-height:1.25rem}.sm\:text-xl{font-size:1.25rem;line-height:1.75rem}.sm\:text-xs{font-size:0.75rem;line-height:1rem}}</style></head>
+<body class="bg-gray-200 min-h-screen flex flex-col items-center py-4 px-2 sm:px-4 transition-colors duration-200">
+
+  <!-- 操作用コントロールパネル（モード切替・書き出し・読み込み・フルスクリーン） -->
+  <div id="top-control-panel" class="no-print w-full max-w-2xl bg-white rounded-xl shadow-md p-3 mb-4 flex flex-col gap-2.5 border border-gray-300">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <!-- 編集画面 / 表示画面 切り替えタブ -->
+      <div class="flex bg-gray-100 p-1 rounded-lg border border-gray-300">
+
+
+  <!-- 通知トースト -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg pointer-events-none transition-opacity duration-300 z-50 opacity-0">編集画面に切り替えました</div>
+
+  <!-- メイン端末画面（iPad風スタフ画面再現） -->
+  <div id="app-container" class="w-full max-w-2xl bg-white shadow-2xl rounded-xl overflow-hidden border border-gray-400 edit-mode">
+    
+    <!-- アプリ内ナビゲーションバー -->
+    <div class="bg-header-bar bg-gray-50 border-b border-gray-300 px-3 py-2 flex items-center justify-between relative">
+      <!-- 左：＜ メニュー（ドロップダウン開閉） -->
+      <div class="relative">
+        <button onclick="toggleLeftMenu(event)" class="flex items-center text-blue-500 hover:text-blue-600 font-medium text-base sm:text-lg active:opacity-60">
+          <svg class="w-6 h-6 -ml-1" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          <span id="nav-back-text">メニュー</span>
+        </button>
+
+        <!-- ＜ メニュー ドロップダウン -->
+        <div id="left-dropdown-menu" class="absolute left-0 mt-2 w-60 bg-white border border-gray-300 rounded-xl shadow-2xl p-2 z-50 text-gray-800 text-xs sm:text-sm flex flex-col gap-1 hidden">
+          <div class="px-2.5 py-1 text-[0.7rem] font-bold text-gray-400">モード切替</div>
+          <button id="menu-btn-edit" onclick="switchViewMode('edit'); closeLeftMenu();" class="w-full text-left px-3 py-2 rounded-lg font-bold bg-blue-50 text-blue-700 flex items-center justify-between">
+            <span>編集画面</span>
+            <span id="check-edit" class="">✓</span>
+          </button>
+          <button id="menu-btn-view" onclick="switchViewMode('view'); closeLeftMenu();" class="w-full text-left px-3 py-2 rounded-lg font-medium hover:bg-gray-100 flex items-center justify-between">
+            <span>表示画面（現在時刻）</span>
+            <span id="check-view" class="hidden">✓</span>
+          </button>
+
+          <div class="border-t border-gray-200 my-1"></div>
+          <div class="px-2.5 py-1 text-[0.7rem] font-bold text-gray-400">データ管理</div>
+          <button onclick="exportJSON(); closeLeftMenu();" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 font-medium flex items-center gap-2">
+            <span>書き出し (JSON)</span>
+          </button>
+          <label class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 font-medium flex items-center gap-2 cursor-pointer">
+            <span>読み込み (JSON)</span>
+            <input type="file" id="import-file" accept=".json" class="hidden" onchange="importJSON(event); closeLeftMenu();">
+          </label>
+
+          <div id="menu-edit-actions" class="">
+            <div class="border-t border-gray-200 my-1"></div>
+            <div class="px-2.5 py-1 text-[0.7rem] font-bold text-gray-400">時刻表の編集</div>
+            <button onclick="addStationRow(); closeLeftMenu();" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 font-medium">
+              ＋ 行を追加
+            </button>
+            <button onclick="removeStationRow(); closeLeftMenu();" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 font-medium">
+              － 一番下の行を削除
+            </button>
+            <button onclick="resetToDefault(); closeLeftMenu();" class="w-full text-left px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 font-medium">
+              すべてクリア（白紙に戻す）
+            </button>
+          </div>
+
+          <div class="border-t border-gray-200 my-1"></div>
+          <button onclick="toggleFullScreen(); closeLeftMenu();" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 font-medium flex items-center justify-between">
+            <span id="menu-fs-label">フルスクリーン表示</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 中央：乗務区名 -->
+      <div id="depot-name" contenteditable="true" class="font-medium text-gray-800 text-base sm:text-lg px-2 rounded min-w-[4rem] text-center"></div>
+
+      <!-- 右：明暗切替・文字サイズ(-/+)・その他 -->
+      <div class="flex items-center gap-2">
+        <!-- 輝度（ダークモード）切替 -->
+        <button onclick="toggleDarkMode()" class="p-1.5 rounded-full hover:bg-gray-200 text-gray-800 transition" title="昼夜モード切替">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 7a5 5 0 100 10 5 5 0 000-10zm0-5a1 1 0 011 1v2a1 1 0 11-2 0V3a1 1 0 011-1zm0 16a1 1 0 011 1v2a1 1 0 11-2 0v-2a1 1 0 011-1zm9-7a1 1 0 01-1 1h-2a1 1 0 110-2h2a1 1 0 011 1zM5 12a1 1 0 01-1 1H2a1 1 0 110-2h2a1 1 0 011 1zm13.364-6.364a1 1 0 010 1.414l-1.414 1.414a1 1 0 11-1.414-1.414l1.414-1.414a1 1 0 011.414 0zM7.05 16.95a1 1 0 010 1.414l-1.414 1.414a1 1 0 11-1.414-1.414l1.414-1.414a1 1 0 011.414 0zm11.314 1.414a1 1 0 01-1.414 0l-1.414-1.414a1 1 0 111.414-1.414l1.414 1.414a1 1 0 010 1.414zM7.05 7.05a1 1 0 01-1.414 0L4.222 5.636a1 1 0 111.414-1.414L7.05 5.636a1 1 0 010 1.414z"></path>
+          </svg>
+        </button>
+
+        <!-- 文字縮小/拡大セグメントボタン -->
+        <div class="flex border border-gray-400 rounded overflow-hidden bg-white text-gray-800">
+          <button onclick="changeFontScale(-0.05)" class="px-3 py-0.5 text-lg font-medium hover:bg-gray-100 border-r border-gray-400 active:bg-gray-200" title="文字を小さく">-</button>
+          <button onclick="changeFontScale(0.05)" class="px-3 py-0.5 text-lg font-medium hover:bg-gray-100 active:bg-gray-200" title="文字を大きく">+</button>
+        </div>
+
+        <!-- その他メニュー -->
+        <div class="relative">
+          <button onclick="toggleClockMenu(event)" class="p-1 text-blue-500 hover:text-blue-600 rounded" title="メニュー">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"></path>
+            </svg>
+          </button>
+          <div id="clock-menu" class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-300 rounded-lg shadow-xl p-2 z-40 text-gray-800 text-xs flex flex-col gap-1">
+            <button onclick="switchViewMode(viewMode === 'edit' ? 'view' : 'edit'); closeClockMenu();" class="w-full text-left px-2.5 py-2 rounded hover:bg-gray-100 font-medium flex items-center justify-between">
+              <span id="menu-mode-label">表示画面（現在時刻）へ切替</span>
+            </button>
+            <button onclick="toggleFullScreen(); closeClockMenu();" class="w-full text-left px-2.5 py-2 rounded hover:bg-gray-100 font-medium flex items-center justify-between">
+              <span id="menu-fs-label-right">フルスクリーン表示</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- スタフ本体グリッド -->
+    <div id="staff-sheet" class="bg-white text-black transition-all duration-150" style="font-size: 100%;">
+      
+      <!-- 上部ヘッダー領域（種別 / 形式 / 両数） -->
+      <div class="grid grid-cols-12 border-b-2 border-black border-line">
+        <!-- 列車種別 -->
+        <div id="train-type-bg" class="col-span-8 flex items-center justify-center py-1 px-2 border-r-2 border-black border-line relative group min-h-[3.5rem] bg-black text-white" data-color-class="bg-black text-white">
+          <div id="train-type" contenteditable="true" class="text-4xl sm:text-5xl font-medium tracking-[0.2em] text-center w-full min-h-[2.8rem]">各駅停車</div>
+          <!-- 種別背景色クイック切替（編集モードのホバー時のみ表示） -->
+          <div id="color-picker-bar" class="no-print opacity-0 group-hover:opacity-100 transition-opacity absolute top-1 right-1 flex gap-1 bg-white/90 p-1 rounded shadow">
+            <button onclick="setTrainTypeColor('bg-black text-white')" class="w-4 h-4 rounded-full bg-black border border-gray-400" title="黒"></button>
+            <button onclick="setTrainTypeColor('bg-blue-700 text-white')" class="w-4 h-4 rounded-full bg-blue-700" title="青"></button>
+            <button onclick="setTrainTypeColor('bg-red-600 text-white')" class="w-4 h-4 rounded-full bg-red-600" title="赤"></button>
+            <button onclick="setTrainTypeColor('bg-emerald-700 text-white')" class="w-4 h-4 rounded-full bg-emerald-700" title="緑"></button>
+          </div>
+        </div>
+
+        <!-- 車両記号 -->
+        <div class="col-span-2 flex items-center justify-center border-r border-black border-line py-1">
+          <div id="car-type" contenteditable="true" class="text-4xl sm:text-5xl font-normal text-center w-full min-h-[2.8rem]"></div>
+        </div>
+
+        <!-- 両数 -->
+        <div class="col-span-2 flex items-baseline justify-center py-1 px-1">
+          <div id="car-count" contenteditable="true" class="text-4xl sm:text-5xl font-normal text-center min-w-[1.8rem] min-h-[2.8rem]"></div>
+          <span class="text-sm sm:text-base ml-0.5">両</span>
+        </div>
+      </div>
+
+      <!-- メインコンテンツ領域（左：発着・時刻表 / 右：乗務開始・時計・記事） -->
+      <div class="grid grid-cols-12">
+        
+        <!-- 左側 8カラム（発着駅・列車番号・時刻表） -->
+        <div class="col-span-8 border-r-2 border-black border-line flex flex-col">
+          
+          <!-- 発着駅・列車番号ブロック -->
+          <div class="grid grid-cols-12 border-b-2 border-black border-line">
+            <!-- 発・着ラベル＆駅名 -->
+            <div class="col-span-5 border-r border-black border-line">
+              <div class="grid grid-cols-4 border-b border-black border-line">
+                <div class="col-span-1 border-r border-black border-line flex items-center justify-center text-sm sm:text-base py-1">発</div>
+                <div id="origin-station" contenteditable="true" class="col-span-3 flex items-center justify-center text-lg sm:text-xl tracking-widest py-1 min-h-[2.25rem]"><br></div>
+              </div>
+              <div class="grid grid-cols-4">
+                <div class="col-span-1 border-r border-black border-line flex items-center justify-center text-sm sm:text-base py-1">着</div>
+                <div id="dest-station" contenteditable="true" class="col-span-3 flex items-center justify-center text-lg sm:text-xl tracking-widest py-1 min-h-[2.25rem]"></div>
+              </div>
+            </div>
+
+            <!-- 列車番号 -->
+            <div class="col-span-7 flex items-baseline justify-center py-2 px-2 my-auto">
+              <div id="train-number" contenteditable="true" class="text-3xl sm:text-4xl font-normal tracking-tight text-center min-w-[5rem] min-h-[2.5rem]"><br></div>
+              <span class="text-sm sm:text-base ml-2 whitespace-nowrap">列車</span>
+            </div>
+          </div>
+
+          <!-- 時刻表テーブル領域（右側余白列を含む） -->
+          <div class="grid grid-cols-12 flex-1">
+            <!-- 駅名・着時刻・記号・発時刻（10カラム） -->
+            <div id="timetable-rows" class="col-span-10 border-r border-black border-line divide-y divide-black"><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="0"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="1"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="2"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="3"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="4"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="5"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="6"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="7"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="8"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="9"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="10"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="11"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="12"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="13"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="14"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div><div class="grid grid-cols-12 min-h-[2.15rem] border-line items-stretch" data-index="15"><div contenteditable="true" class="col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5" data-field="station"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4 border-r border-black border-line"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="arrHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="arrSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div><div contenteditable="true" class="col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5" data-field="mark" title="クリックで編集（×など）"></div><div class="flex items-center justify-center px-1 py-0.5 gap-0.5 col-span-4"><span contenteditable="true" class="text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right" data-field="depHm"></span><span contenteditable="true" class="text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium " data-field="depSec" data-highlight="false" title="ダブルクリックでピンク色強調のON/OFF"></span></div></div></div>
+
+            <!-- 右端の自由メモ・予備縦長カラム（2カラム） -->
+            <div id="side-note-column" contenteditable="true" class="col-span-2 p-1 text-xs writing-vertical text-center flex items-start justify-center pt-2" title="自由記入欄"></div>
+          </div>
+        </div>
+
+        <!-- 右側 4カラム（乗務ステータス・アナログ＆デジタル時計・記事） -->
+        <div class="col-span-4 flex flex-col">
+          
+          <!-- 乗務ステータスバー -->
+          <div class="bg-sub-gray bg-gray-300 border-b border-black border-line py-1.5 px-1 text-center">
+            <div id="duty-status" contenteditable="true" class="text-lg sm:text-xl tracking-wider font-normal min-h-[1.75rem]"></div>
+          </div>
+
+          <!-- アナログ時計＋デジタル時計エリア -->
+          <div class="border-b border-black border-line py-3 px-2 flex flex-col items-center justify-center">
+            <!-- アナログ時計SVG -->
+            <div class="w-28 h-28 sm:w-32 sm:h-32 mb-2">
+              <svg id="analog-clock" viewBox="0 0 120 120" class="w-full h-full">
+                <!-- 外枠 -->
+                <circle cx="60" cy="60" r="56" fill="#ffffff" stroke="#111111" stroke-width="1.5"></circle>
+                <!-- 目盛り・数字グループ -->
+                <g id="clock-ticks"><line x1="60" y1="12" x2="60" y2="7" stroke="#111111" stroke-width="1.5"></line><text x="60" y="23" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="#111111">12</text><line x1="65.2786873950165" y1="9.7766442839022" x2="65.54000855318563" y2="7.290339545481515" stroke="#111111" stroke-width="0.7"></line><line x1="70.49954038629684" y1="10.603546162942813" x2="71.01931961334124" y2="8.158177161108298" stroke="#111111" stroke-width="0.7"></line><line x1="75.60535821593484" y1="11.971645927094748" x2="76.3779007018722" y2="9.594004636356864" stroke="#111111" stroke-width="0.7"></line><line x1="80.54020047532791" y1="13.865954389048653" x2="81.55704208301741" y2="11.582090744942157" stroke="#111111" stroke-width="0.7"></line><line x1="84" y1="18.430780618346944" x2="86.5" y2="14.100653599424746" stroke="#111111" stroke-width="1.5"></line><text x="80" y="28.35898384862245" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="#111111">1</text><line x1="89.68315524076989" y1="19.14464178406515" x2="91.15261837150108" y2="17.122099298127786" stroke="#111111" stroke-width="0.7"></line><line x1="93.79109562112234" y1="22.47118631339159" x2="95.4639221370195" y2="20.613324249698103" stroke="#111111" stroke-width="0.7"></line><line x1="97.5288136866084" y1="26.208904378877662" x2="99.38667575030189" y2="24.536077862980513" stroke="#111111" stroke-width="0.7"></line><line x1="100.85535821593484" y1="30.316844759230108" x2="102.87790070187222" y2="28.847381628498923" stroke="#111111" stroke-width="0.7"></line><line x1="101.56921938165306" y1="35.99999999999999" x2="105.89934640057524" y2="33.49999999999999" stroke="#111111" stroke-width="1.5"></line><text x="94.64101615137754" y="43" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="#111111">2</text><line x1="106.13404561095135" y1="39.45979952467209" x2="108.41790925505785" y2="38.44295791698259" stroke="#111111" stroke-width="0.7"></line><line x1="108.02835407290524" y1="44.39464178406516" x2="110.40599536364314" y2="43.622099298127786" stroke="#111111" stroke-width="0.7"></line><line x1="109.39645383705718" y1="49.50045961370315" x2="111.84182283889169" y2="48.98068038665875" stroke="#111111" stroke-width="0.7"></line><line x1="110.2233557160978" y1="54.7213126049835" x2="112.70966045451848" y2="54.459991446814364" stroke="#111111" stroke-width="0.7"></line><line x1="108" y1="60" x2="113" y2="60" stroke="#111111" stroke-width="1.5"></line><text x="100" y="63" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="#111111">3</text><line x1="110.22335571609781" y1="65.27868739501649" x2="112.70966045451848" y2="65.54000855318563" stroke="#111111" stroke-width="0.7"></line><line x1="109.39645383705718" y1="70.49954038629684" x2="111.8418228388917" y2="71.01931961334124" stroke="#111111" stroke-width="0.7"></line><line x1="108.02835407290526" y1="75.60535821593484" x2="110.40599536364314" y2="76.3779007018722" stroke="#111111" stroke-width="0.7"></line><line x1="106.13404561095135" y1="80.54020047532791" x2="108.41790925505785" y2="81.55704208301741" stroke="#111111" stroke-width="0.7"></line><line x1="101.56921938165306" y1="83.99999999999999" x2="105.89934640057525" y2="86.49999999999999" stroke="#111111" stroke-width="1.5"></line><text x="94.64101615137756" y="83" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="#111111">4</text><line x1="100.85535821593484" y1="89.68315524076989" x2="102.87790070187222" y2="91.15261837150106" stroke="#111111" stroke-width="0.7"></line><line x1="97.5288136866084" y1="93.79109562112234" x2="99.38667575030189" y2="95.4639221370195" stroke="#111111" stroke-width="0.7"></line><line x1="93.79109562112234" y1="97.5288136866084" x2="95.4639221370195" y2="99.38667575030189" stroke="#111111" stroke-width="0.7"></line><line x1="89.6831552407699" y1="100.85535821593484" x2="91.15261837150108" y2="102.8779007018722" stroke="#111111" stroke-width="0.7"></line><line x1="84" y1="101.56921938165306" x2="86.5" y2="105.89934640057525" stroke="#111111" stroke-width="1.5"></line><text x="80" y="97.64101615137756" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="#111111">5</text><line x1="80.54020047532792" y1="106.13404561095135" x2="81.55704208301742" y2="108.41790925505785" stroke="#111111" stroke-width="0.7"></line><line x1="75.60535821593484" y1="108.02835407290524" x2="76.37790070187222" y2="110.40599536364314" stroke="#111111" stroke-width="0.7"></line><line x1="70.49954038629684" y1="109.39645383705718" x2="71.01931961334124" y2="111.8418228388917" stroke="#111111" stroke-width="0.7"></line><line x1="65.27868739501652" y1="110.2233557160978" x2="65.54000855318564" y2="112.70966045451848" stroke="#111111" stroke-width="0.7"></line><line x1="60.00000000000001" y1="108" x2="60.00000000000001" y2="113" stroke="#111111" stroke-width="1.5"></line><text x="60.00000000000001" y="103" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="#111111">6</text><line x1="54.721312604983524" y1="110.22335571609781" x2="54.459991446814385" y2="112.70966045451848" stroke="#111111" stroke-width="0.7"></line><line x1="49.50045961370317" y1="109.39645383705718" x2="48.98068038665877" y2="111.8418228388917" stroke="#111111" stroke-width="0.7"></line><line x1="44.39464178406514" y1="108.02835407290524" x2="43.62209929812777" y2="110.40599536364314" stroke="#111111" stroke-width="0.7"></line><line x1="39.45979952467211" y1="106.13404561095135" x2="38.44295791698261" y2="108.41790925505785" stroke="#111111" stroke-width="0.7"></line><line x1="35.99999999999999" y1="101.56921938165306" x2="33.49999999999999" y2="105.89934640057524" stroke="#111111" stroke-width="1.5"></line><text x="40" y="97.64101615137754" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="#111111">7</text><line x1="30.31684475923011" y1="100.85535821593484" x2="28.84738162849893" y2="102.87790070187222" stroke="#111111" stroke-width="0.7"></line><line x1="26.208904378877662" y1="97.5288136866084" x2="24.536077862980513" y2="99.38667575030189" stroke="#111111" stroke-width="0.7"></line><line x1="22.4711863133916" y1="93.79109562112235" x2="20.613324249698117" y2="95.4639221370195" stroke="#111111" stroke-width="0.7"></line><line x1="19.144641784065158" y1="89.6831552407699" x2="17.122099298127793" y2="91.15261837150108" stroke="#111111" stroke-width="0.7"></line><line x1="18.430780618346958" y1="84.00000000000003" x2="14.100653599424767" y2="86.50000000000003" stroke="#111111" stroke-width="1.5"></line><text x="25.358983848622465" y="83.00000000000001" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="#111111">8</text><line x1="13.865954389048653" y1="80.54020047532791" x2="11.58209074494215" y2="81.55704208301741" stroke="#111111" stroke-width="0.7"></line><line x1="11.971645927094748" y1="75.60535821593486" x2="9.594004636356864" y2="76.37790070187222" stroke="#111111" stroke-width="0.7"></line><line x1="10.60354616294282" y1="70.49954038629687" x2="8.158177161108306" y2="71.01931961334127" stroke="#111111" stroke-width="0.7"></line><line x1="9.776644283902193" y1="65.27868739501649" x2="7.290339545481508" y2="65.54000855318563" stroke="#111111" stroke-width="0.7"></line><line x1="12" y1="60.00000000000001" x2="7" y2="60.00000000000001" stroke="#111111" stroke-width="1.5"></line><text x="20" y="63.00000000000001" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="#111111">9</text><line x1="9.776644283902193" y1="54.721312604983524" x2="7.290339545481508" y2="54.45999144681439" stroke="#111111" stroke-width="0.7"></line><line x1="10.603546162942806" y1="49.50045961370319" x2="8.158177161108291" y2="48.9806803866588" stroke="#111111" stroke-width="0.7"></line><line x1="11.971645927094741" y1="44.394641784065165" x2="9.594004636356857" y2="43.62209929812779" stroke="#111111" stroke-width="0.7"></line><line x1="13.86595438904866" y1="39.45979952467207" x2="11.582090744942157" y2="38.44295791698257" stroke="#111111" stroke-width="0.7"></line><line x1="18.430780618346944" y1="35.99999999999999" x2="14.100653599424753" y2="33.49999999999999" stroke="#111111" stroke-width="1.5"></line><text x="25.358983848622458" y="43" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="#111111">10</text><line x1="19.14464178406515" y1="30.31684475923012" x2="17.12209929812778" y2="28.847381628498937" stroke="#111111" stroke-width="0.7"></line><line x1="22.471186313391577" y1="26.208904378877683" x2="20.61332424969809" y2="24.536077862980534" stroke="#111111" stroke-width="0.7"></line><line x1="26.208904378877662" y1="22.47118631339159" x2="24.53607786298052" y2="20.613324249698103" stroke="#111111" stroke-width="0.7"></line><line x1="30.316844759230094" y1="19.144641784065158" x2="28.847381628498912" y2="17.122099298127793" stroke="#111111" stroke-width="0.7"></line><line x1="35.99999999999998" y1="18.430780618346958" x2="33.49999999999997" y2="14.100653599424767" stroke="#111111" stroke-width="1.5"></line><text x="39.999999999999986" y="28.358983848622465" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="#111111">11</text><line x1="39.45979952467209" y1="13.865954389048653" x2="38.44295791698259" y2="11.58209074494215" stroke="#111111" stroke-width="0.7"></line><line x1="44.39464178406514" y1="11.971645927094748" x2="43.62209929812778" y2="9.594004636356864" stroke="#111111" stroke-width="0.7"></line><line x1="49.50045961370313" y1="10.60354616294282" x2="48.980680386658726" y2="8.158177161108306" stroke="#111111" stroke-width="0.7"></line><line x1="54.7213126049835" y1="9.7766442839022" x2="54.45999144681437" y2="7.290339545481515" stroke="#111111" stroke-width="0.7"></line></g>
+                <!-- 時針 -->
+                <line id="hour-hand" x1="60" y1="60" x2="60" y2="30" stroke="#000000" stroke-width="3" stroke-linecap="round" transform="rotate(0 60 60)"></line>
+                <!-- 分針 -->
+                <line id="minute-hand" x1="60" y1="60" x2="60" y2="16" stroke="#000000" stroke-width="2" stroke-linecap="round" transform="rotate(0 60 60)"></line>
+                <!-- 秒針（赤） -->
+                <line id="second-hand" x1="60" y1="68" x2="60" y2="12" stroke="#dc2626" stroke-width="1" stroke-linecap="round" transform="rotate(0 60 60)"></line>
+                <!-- 中心ピン -->
+                <circle cx="60" cy="60" r="2.5" fill="#000000"></circle>
+              </svg>
+            </div>
+
+            <!-- デジタル時刻表示 -->
+            <div id="digital-clock" contenteditable="true" onblur="syncClockFromText()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" class="text-xl sm:text-2xl font-normal tracking-wider text-center whitespace-nowrap px-1 rounded min-h-[2rem]" title="クリックして時刻を編集（例: 00 : 00 : 00）">00 : 00 : 00</div>
+          </div>
+
+          <!-- 記事ヘッダー -->
+          <div class="bg-article-header bg-gray-500 text-white px-1.5 py-0.5 text-xs sm:text-sm font-normal border-b border-black border-line">
+            記事
+          </div>
+
+          <!-- 記事内容エリア -->
+          <div id="remarks-content" contenteditable="true" class="p-1.5 text-sm sm:text-base leading-snug min-h-[120px] border-b border-black border-line whitespace-pre-wrap"></div>
+
+          <!-- 下部余白 -->
+          <div class="flex-1 bg-transparent min-h-[100px]"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 初期データ（すべて白紙・空状態）
+    function createEmptyRows(count = 16) {
+      return Array.from({ length: count }, () => ({
+        station: "",
+        arrHm: "",
+        arrSec: "",
+        arrHighlight: false,
+        mark: "",
+        depHm: "",
+        depSec: "",
+        depHighlight: false
+      }));
+    }
+
+    const DEFAULT_DATA = {
+      navBackText: "メニュー",
+      depotName: "",
+      trainType: "",
+      trainTypeColor: "bg-black text-white",
+      carType: "",
+      carCount: "",
+      originStation: "",
+      destStation: "",
+      trainNumber: "",
+      dutyStatus: "",
+      clockTime: "00 : 00 : 00",
+      remarks: "",
+      sideNote: "",
+      fontScale: 1.0,
+      rows: createEmptyRows(16)
+    };
+
+    let currentData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    let clockInterval = null;
+    let viewMode = 'edit'; // 'edit' | 'view'
+
+    // 初期化処理
+    window.addEventListener('DOMContentLoaded', () => {
+      initAnalogClockFace();
+      renderData(currentData);
+      switchViewMode('edit', true);
+
+      // フルスクリーン状態変化の監視
+      document.addEventListener('fullscreenchange', updateFullScreenUI);
+      document.addEventListener('webkitfullscreenchange', updateFullScreenUI);
+
+      // メニュー外クリックでドロップダウンを閉じる
+      document.addEventListener('click', (e) => {
+        const leftMenu = document.getElementById('left-dropdown-menu');
+        const rightMenu = document.getElementById('clock-menu');
+        if (leftMenu && !leftMenu.classList.contains('hidden')) {
+          closeLeftMenu();
+        }
+        if (rightMenu && !rightMenu.classList.contains('hidden')) {
+          closeClockMenu();
+        }
+      });
+    });
+
+    // 左上「＜ メニュー」ドロップダウン制御
+    function toggleLeftMenu(e) {
+      if (e) e.stopPropagation();
+      closeClockMenu();
+      const menu = document.getElementById('left-dropdown-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    function closeLeftMenu() {
+      const menu = document.getElementById('left-dropdown-menu');
+      if (menu) menu.classList.add('hidden');
+    }
+
+    // 右上「⋮」メニュー制御
+    function toggleClockMenu(e) {
+      if (e) e.stopPropagation();
+      closeLeftMenu();
+      const menu = document.getElementById('clock-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    function closeClockMenu() {
+      const menu = document.getElementById('clock-menu');
+      if (menu) menu.classList.add('hidden');
+    }
+
+    // アナログ時計の文字盤（目盛り・数字）を生成
+    function initAnalogClockFace() {
+      const ticksGroup = document.getElementById('clock-ticks');
+      if (!ticksGroup || ticksGroup.children.length > 0) return;
+
+      const ns = "http://www.w3.org/2000/svg";
+      for (let i = 0; i < 60; i++) {
+        const angle = (i * 6) * Math.PI / 180;
+        const isHour = i % 5 === 0;
+        const rOuter = 53;
+        const rInner = isHour ? 48 : 50.5;
+
+        const line = document.createElementNS(ns, "line");
+        line.setAttribute("x1", 60 + rInner * Math.sin(angle));
+        line.setAttribute("y1", 60 - rInner * Math.cos(angle));
+        line.setAttribute("x2", 60 + rOuter * Math.sin(angle));
+        line.setAttribute("y2", 60 - rOuter * Math.cos(angle));
+        line.setAttribute("stroke", "#111111");
+        line.setAttribute("stroke-width", isHour ? "1.5" : "0.7");
+        ticksGroup.appendChild(line);
+
+        if (isHour) {
+          const hourNum = i === 0 ? 12 : i / 5;
+          const rText = 40;
+          const text = document.createElementNS(ns, "text");
+          text.setAttribute("x", 60 + rText * Math.sin(angle));
+          text.setAttribute("y", 60 - rText * Math.cos(angle) + 3);
+          text.setAttribute("text-anchor", "middle");
+          text.setAttribute("font-size", "8.5");
+          text.setAttribute("font-family", "sans-serif");
+          text.setAttribute("fill", "#111111");
+          text.textContent = hourNum;
+          ticksGroup.appendChild(text);
+        }
+      }
+    }
+
+    // 列車種別の背景色を変更
+    function setTrainTypeColor(colorClass) {
+      const bgEl = document.getElementById('train-type-bg');
+      if (!bgEl) return;
+      const baseClass = "col-span-8 flex items-center justify-center py-1 px-2 border-r-2 border-black border-line relative group min-h-[3.5rem]";
+      bgEl.className = `${baseClass} ${colorClass}`;
+      bgEl.dataset.colorClass = colorClass;
+    }
+
+    // 昼夜（ダーク）モード切替
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-theme');
+      const isDark = document.body.classList.contains('dark-theme');
+      showToast(isDark ? "夜間（反転）モードに切り替えました" : "昼間モードに切り替えました");
+    }
+
+    // 文字サイズ調整
+    function changeFontScale(delta) {
+      const nextScale = Math.min(1.4, Math.max(0.75, (currentData.fontScale || 1.0) + delta));
+      currentData.fontScale = Math.round(nextScale * 100) / 100;
+      document.getElementById('staff-sheet').style.fontSize = `${Math.round(currentData.fontScale * 100)}%`;
+      showToast(`文字サイズ: ${Math.round(currentData.fontScale * 100)}%`);
+    }
+
+    // 編集画面と表示画面の切り替え
+    function switchViewMode(mode, silent = false) {
+      if (viewMode === 'edit' && mode === 'view') {
+        currentData = collectCurrentData();
+      }
+
+      viewMode = mode;
+      const appContainer = document.getElementById('app-container');
+      const colorPickerBar = document.getElementById('color-picker-bar');
+      const menuModeLabel = document.getElementById('menu-mode-label');
+      const menuBtnEdit = document.getElementById('menu-btn-edit');
+      const menuBtnView = document.getElementById('menu-btn-view');
+      const checkEdit = document.getElementById('check-edit');
+      const checkView = document.getElementById('check-view');
+      const menuEditActions = document.getElementById('menu-edit-actions');
+
+      // 全編集可能要素の contenteditable を切り替え
+      const editables = appContainer.querySelectorAll('[contenteditable]');
+      editables.forEach(el => {
+        el.contentEditable = (mode === 'edit') ? 'true' : 'false';
+      });
+
+      if (mode === 'edit') {
+        appContainer.classList.add('edit-mode');
+        colorPickerBar.classList.remove('hidden');
+        menuEditActions.classList.remove('hidden');
+
+        menuBtnEdit.className = "w-full text-left px-3 py-2 rounded-lg font-bold bg-blue-50 text-blue-700 flex items-center justify-between";
+        menuBtnView.className = "w-full text-left px-3 py-2 rounded-lg font-medium hover:bg-gray-100 flex items-center justify-between";
+        checkEdit.classList.remove('hidden');
+        checkView.classList.add('hidden');
+        menuModeLabel.textContent = "表示画面（現在時刻）へ切替";
+
+        // 時計を編集データ上の固定時刻に戻す
+        setClockMode('fixed');
+        document.getElementById('digital-clock').textContent = currentData.clockTime || "00 : 00 : 00";
+        syncClockFromText();
+
+        if (!silent) showToast("編集画面に切り替えました");
+      } else {
+        appContainer.classList.remove('edit-mode');
+        colorPickerBar.classList.add('hidden');
+        menuEditActions.classList.add('hidden');
+
+        menuBtnView.className = "w-full text-left px-3 py-2 rounded-lg font-bold bg-emerald-50 text-emerald-700 flex items-center justify-between";
+        menuBtnEdit.className = "w-full text-left px-3 py-2 rounded-lg font-medium hover:bg-gray-100 flex items-center justify-between";
+        checkView.classList.remove('hidden');
+        checkEdit.classList.add('hidden');
+        menuModeLabel.textContent = "編集画面へ戻る";
+
+        // 表示画面では実際の現在時刻をリアルタイム表示
+        setClockMode('realtime');
+
+        if (!silent) showToast("表示画面（現在時刻・編集ロック）に切り替えました");
+      }
+    }
+
+    // フルスクリーン切り替え
+    function toggleFullScreen() {
+      const docEl = document.documentElement;
+      const isFullScreen = document.fullscreenElement || document.webkitFullscreenElement;
+
+      if (!isFullScreen) {
+        if (docEl.requestFullscreen) {
+          docEl.requestFullscreen().catch(() => {
+            showToast("フルスクリーン表示がブラウザにブロックされました");
+          });
+        } else if (docEl.webkitRequestFullscreen) {
+          docEl.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    }
+
+    // フルスクリーン状態に応じたUI更新
+    function updateFullScreenUI() {
+      const isFullScreen = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+      const menuFsLabel = document.getElementById('menu-fs-label');
+      const menuFsLabelRight = document.getElementById('menu-fs-label-right');
+
+      if (isFullScreen) {
+        document.body.classList.remove('py-4', 'px-2', 'sm:px-4');
+        if (menuFsLabel) menuFsLabel.textContent = "フルスクリーン解除";
+        if (menuFsLabelRight) menuFsLabelRight.textContent = "フルスクリーン解除";
+      } else {
+        document.body.classList.add('py-4', 'px-2', 'sm:px-4');
+        if (menuFsLabel) menuFsLabel.textContent = "フルスクリーン表示";
+        if (menuFsLabelRight) menuFsLabelRight.textContent = "フルスクリーン表示";
+      }
+    }
+
+    // データを画面全体に反映
+    function renderData(data) {
+      document.getElementById('nav-back-text').textContent = data.navBackText || "メニュー";
+      document.getElementById('depot-name').textContent = data.depotName || "";
+      document.getElementById('train-type').textContent = data.trainType || "";
+      setTrainTypeColor(data.trainTypeColor || "bg-black text-white");
+      document.getElementById('car-type').textContent = data.carType || "";
+      document.getElementById('car-count').textContent = data.carCount || "";
+      document.getElementById('origin-station').textContent = data.originStation || "";
+      document.getElementById('dest-station').textContent = data.destStation || "";
+      document.getElementById('train-number').textContent = data.trainNumber || "";
+      document.getElementById('duty-status').textContent = data.dutyStatus || "";
+      document.getElementById('digital-clock').textContent = data.clockTime || "00 : 00 : 00";
+      document.getElementById('remarks-content').textContent = data.remarks || "";
+      document.getElementById('side-note-column').textContent = data.sideNote || "";
+
+      // 文字スケール適用
+      currentData.fontScale = data.fontScale || 1.0;
+      document.getElementById('staff-sheet').style.fontSize = `${Math.round(currentData.fontScale * 100)}%`;
+
+      // 時刻表行の描画
+      const container = document.getElementById('timetable-rows');
+      container.innerHTML = '';
+
+      data.rows.forEach((row, idx) => {
+        const rowEl = document.createElement('div');
+        rowEl.className = "grid grid-cols-12 min-h-[2.15rem] border-line items-stretch";
+        rowEl.dataset.index = idx;
+
+        // 1. 駅名セル (3カラム)
+        const stationCell = document.createElement('div');
+        stationCell.contentEditable = "true";
+        stationCell.className = "col-span-3 border-r border-black border-line flex items-center justify-center text-base sm:text-lg tracking-wider px-0.5 py-0.5";
+        stationCell.textContent = row.station;
+        stationCell.dataset.field = "station";
+
+        // 2. 着時刻セル (4カラム)
+        const arrCell = createTimeCell(row.arrHm, row.arrSec, row.arrHighlight, "arr");
+        arrCell.classList.add("col-span-4", "border-r", "border-black", "border-line");
+
+        // 3. 中央記号セル (1カラム)
+        const markCell = document.createElement('div');
+        markCell.contentEditable = "true";
+        markCell.className = "col-span-1 border-r border-black border-line flex items-center justify-center text-xs sm:text-sm font-bold px-0 py-0.5";
+        markCell.textContent = row.mark;
+        markCell.dataset.field = "mark";
+        markCell.title = "クリックで編集（×など）";
+
+        // 4. 発時刻セル (4カラム)
+        const depCell = createTimeCell(row.depHm, row.depSec, row.depHighlight, "dep");
+        depCell.classList.add("col-span-4");
+
+        rowEl.appendChild(stationCell);
+        rowEl.appendChild(arrCell);
+        rowEl.appendChild(markCell);
+        rowEl.appendChild(depCell);
+        container.appendChild(rowEl);
+      });
+
+      syncClockFromText();
+    }
+
+    // 時刻セル（時:分 + 上付き秒数）を生成
+    function createTimeCell(hm, sec, isHighlight, prefix) {
+      const wrapper = document.createElement('div');
+      wrapper.className = "flex items-center justify-center px-1 py-0.5 gap-0.5";
+
+      const hmSpan = document.createElement('span');
+      hmSpan.contentEditable = "true";
+      hmSpan.className = "text-lg sm:text-xl tracking-tight min-w-[2.6rem] text-right";
+      hmSpan.textContent = hm;
+      hmSpan.dataset.field = `${prefix}Hm`;
+
+      const secSpan = document.createElement('span');
+      secSpan.contentEditable = "true";
+      secSpan.className = `text-[0.68rem] sm:text-xs leading-none px-1 py-0.5 rounded-[2px] -mt-2 min-w-[1.25rem] text-center font-medium ${
+        isHighlight ? 'bg-pink-500 text-black font-bold highlight-badge' : ''
+      }`;
+      secSpan.textContent = sec;
+      secSpan.dataset.field = `${prefix}Sec`;
+      secSpan.dataset.highlight = isHighlight ? "true" : "false";
+      secSpan.title = "ダブルクリックでピンク色強調のON/OFF";
+      // ダブルクリックでピンク色の強調バッジをトグル（編集モード時のみ有効）
+      secSpan.addEventListener('dblclick', (e) => {
+        if (viewMode !== 'edit') return;
+        e.preventDefault();
+        const active = secSpan.dataset.highlight === "true";
+        if (active) {
+          secSpan.dataset.highlight = "false";
+          secSpan.classList.remove('bg-pink-500', 'text-black', 'font-bold', 'highlight-badge');
+        } else {
+          secSpan.dataset.highlight = "true";
+          secSpan.classList.add('bg-pink-500', 'text-black', 'font-bold', 'highlight-badge');
+        }
+      });
+
+      wrapper.appendChild(hmSpan);
+      wrapper.appendChild(secSpan);
+      return wrapper;
+    }
+
+    // 現在のDOM状態からJSONデータを収集
+    function collectCurrentData() {
+      const rowEls = document.querySelectorAll('#timetable-rows > div');
+      const rows = Array.from(rowEls).map(rowEl => {
+        const station = rowEl.querySelector('[data-field="station"]').textContent.trim();
+        const arrHm = rowEl.querySelector('[data-field="arrHm"]').textContent.trim();
+        const arrSecEl = rowEl.querySelector('[data-field="arrSec"]');
+        const arrSec = arrSecEl.textContent.trim();
+        const arrHighlight = arrSecEl.dataset.highlight === "true";
+        const mark = rowEl.querySelector('[data-field="mark"]').textContent.trim();
+        const depHm = rowEl.querySelector('[data-field="depHm"]').textContent.trim();
+        const depSecEl = rowEl.querySelector('[data-field="depSec"]');
+        const depSec = depSecEl.textContent.trim();
+        const depHighlight = depSecEl.dataset.highlight === "true";
+
+        return { station, arrHm, arrSec, arrHighlight, mark, depHm, depSec, depHighlight };
+      });
+
+      return {
+        navBackText: "メニュー",
+        depotName: document.getElementById('depot-name').textContent.trim(),
+        trainType: document.getElementById('train-type').textContent.trim(),
+        trainTypeColor: document.getElementById('train-type-bg').dataset.colorClass || "bg-black text-white",
+        carType: document.getElementById('car-type').textContent.trim(),
+        carCount: document.getElementById('car-count').textContent.trim(),
+        originStation: document.getElementById('origin-station').textContent.trim(),
+        destStation: document.getElementById('dest-station').textContent.trim(),
+        trainNumber: document.getElementById('train-number').textContent.trim(),
+        dutyStatus: document.getElementById('duty-status').textContent.trim(),
+        clockTime: document.getElementById('digital-clock').textContent.trim(),
+        remarks: document.getElementById('remarks-content').innerText,
+        sideNote: document.getElementById('side-note-column').innerText,
+        fontScale: currentData.fontScale || 1.0,
+        rows
+      };
+    }
+
+    // JSONファイルとして書き出し
+    function exportJSON() {
+      const data = (viewMode === 'edit') ? collectCurrentData() : currentData;
+      const jsonStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const trainNo = (data.trainNumber || "staff").replace(/[^\w\u3040-\u30ff\u4e00-\u9faf]/g, "_");
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `staff_${trainNo}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("JSONファイルを書き出しました");
+    }
+
+    // JSONファイルの読み込み
+    function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!parsed || !Array.isArray(parsed.rows)) {
+            throw new Error("無効なデータ形式です");
+          }
+          currentData = parsed;
+          renderData(currentData);
+          if (viewMode === 'view') {
+            switchViewMode('view', true);
+          }
+          showToast(`「${file.name}」を読み込みました`);
+        } catch (err) {
+          showToast("エラー: JSONファイルの読み込みに失敗しました");
+          console.error(err);
+        }
+        event.target.value = "";
+      };
+      reader.readAsText(file);
+    }
+
+    // 時刻表の行を追加
+    function addStationRow() {
+      const data = collectCurrentData();
+      data.rows.push({
+        station: "",
+        arrHm: "",
+        arrSec: "",
+        arrHighlight: false,
+        mark: "",
+        depHm: "",
+        depSec: "",
+        depHighlight: false
+      });
+      currentData = data;
+      renderData(currentData);
+      showToast("時刻表に1行追加しました");
+    }
+
+    // 時刻表の末尾行を削除
+    function removeStationRow() {
+      const data = collectCurrentData();
+      if (data.rows.length <= 1) {
+        showToast("これ以上行を削除できません");
+        return;
+      }
+      data.rows.pop();
+      currentData = data;
+      renderData(currentData);
+      showToast("一番下の行を削除しました");
+    }
+
+    // 初期状態にリセット
+    function resetToDefault() {
+      currentData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      renderData(currentData);
+      switchViewMode('edit', true);
+      showToast("すべてクリア（白紙状態）にしました");
+    }
+
+    // デジタル時計のテキストからアナログ時計の針を更新
+    function syncClockFromText() {
+      const text = document.getElementById('digital-clock').textContent.trim();
+      const nums = text.match(/\d+/g);
+      if (!nums || nums.length < 2) return;
+
+      const h = parseInt(nums[0], 10) || 0;
+      const m = parseInt(nums[1], 10) || 0;
+      const s = nums[2] ? parseInt(nums[2], 10) : 0;
+
+      updateClockHands(h, m, s);
+    }
+
+    // アナログ時計の針の角度を設定
+    function updateClockHands(h, m, s) {
+      const secDeg = s * 6;
+      const minDeg = m * 6 + s * 0.1;
+      const hourDeg = (h % 12) * 30 + m * 0.5;
+
+      document.getElementById('second-hand').setAttribute('transform', `rotate(${secDeg} 60 60)`);
+      document.getElementById('minute-hand').setAttribute('transform', `rotate(${minDeg} 60 60)`);
+      document.getElementById('hour-hand').setAttribute('transform', `rotate(${hourDeg} 60 60)`);
+    }
+
+    // 時計モード切替（固定 / リアルタイム）
+    function setClockMode(mode) {
+      if (clockInterval) {
+        clearInterval(clockInterval);
+        clockInterval = null;
+      }
+      if (mode === 'realtime') {
+        const tick = () => {
+          const now = new Date();
+          const hh = String(now.getHours()).padStart(2, '0');
+          const mm = String(now.getMinutes()).padStart(2, '0');
+          const ss = String(now.getSeconds()).padStart(2, '0');
+          document.getElementById('digital-clock').textContent = `${hh} : ${mm} : ${ss}`;
+          updateClockHands(now.getHours(), now.getMinutes(), now.getSeconds());
+        };
+        tick();
+        clockInterval = setInterval(tick, 1000);
+      }
+    }
+    // 編集枠ハイライトのON/OFF（不要になったため削除・整理）
+    // トースト通知表示
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0');
+      }, 2400);
+    }
+  </script>
+
+</div></div></div></body></html>
